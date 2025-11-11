@@ -26,7 +26,7 @@ var (
 func New(basePath string) error {
 	storagePath := filepath.Join(basePath, storageDirName)
 	if err := os.MkdirAll(storagePath, 0755); err != nil {
-		return fmt.Errorf("faild to create storage directory: %w",&err)
+		return fmt.Errorf("faild to create storage directory: %w",err)
 	}
 	return nil
 }
