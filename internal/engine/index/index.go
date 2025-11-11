@@ -9,4 +9,6 @@ type Indexer interface {
 	GetTrackID(filepath string) (int, error)
 
 	SaveHash(hash []byte, packID int, offset int64, size int64) error
+
+	LookupHash(hash []byte) (bool, error)
 }
