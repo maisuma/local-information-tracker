@@ -15,6 +15,10 @@ import (
 func FileExist(filepath string) bool {
 	_, err := os.Stat(filepath)
 
+	if os.IsNotExist(err) {
+		return false
+	}
+
 	return err == nil
 }
 
@@ -69,7 +73,7 @@ func (w *Watcher) Start(ctx context.Context) error {
 			if !ok {
 				return nil
 			}
-			//bitmaskで書き込みと削除を判定
+			//bitmaskで書き込みを判定
 			if event.Op&fsnotify.Write == fsnotify.Write {
 				w.triggerSnapshot(event.Name)
 			}
@@ -93,29 +97,39 @@ func (w *Watcher) Start(ctx context.Context) error {
 func (w *Watcher) triggerSnapshot(filepath string) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	if timer, ok := w.debounceTimers[filepath]; ok {
-		timer.Stop()
+	if pretimer, ok := w.debounceTimers[filepath]; ok {
+		pretimer.Stop() // 既存のタイマーを停止
 	}
-	w.debounceTimers[filepath] = time.AfterFunc(w.debounceDuration, func() {
-		w.cleanupTimer(filepath)
-		w.executeSnapshot(filepath)
+	//afterFuncで指定時間後に関数を実行
+
+	timer := time.AfterFunc(w.debounceDuration, func() {
+		w.finishDebounce(filepath)
 	})
+
+	// 新しいタイマーをマップに保存
+	w.debounceTimers[filepath] = timer
+
 }
 
-func (w *Watcher) cleanupTimer(filepath string) {
+func (w *Watcher) finishDebounce(filepath string) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	delete(w.debounceTimers, filepath)
+
+	w.executeSnapshot(filepath)
 }
-func (w *Watcher) executeSnapshot(filepath string) {
+
+func (w *Watcher) executeSnapshot(filepath string) error {
 	trackID, err := w.index.GetTrackID(filepath)
 	if err != nil {
 		// エラーハンドリング
-		return
+		return err
 	}
+
 	w.snapshotter.Snapshot(trackID)
 	if err != nil {
 		// エラーハンドリング
-		return
+		return err
 	}
+	return nil
 }
