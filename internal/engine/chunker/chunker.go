@@ -19,6 +19,10 @@ const (
 	b = 257 // 基数
 	m = (1 << 61) - 1 // 法
 	mask = (1 << 13) - 1 // 8KB
+
+	mask30 = (1 << 30) - 1
+	mask31 = (1 << 31) - 1
+	mask61 = m
 )
 
 // b^(k-1) % m (区間の一番古いやつ)
@@ -26,6 +30,28 @@ var p uint64
 
 func init() {
 	p = new(big.Int).Exp(big.NewInt(b), big.NewInt(k-1), big.NewInt(m)).Uint64()
+}
+
+// a*b mod 2^61-1
+func mul(a uint64, b uint64) uint64 {
+	au := a >> 31
+	ad := a & mask31
+	bu := b >> 31
+	bd := b & mask31
+	mid := ad * bu + au * bd
+	midu := mid >> 30
+	midd := mid & mask30
+	return calcMod(au * bu * 2 + midu + (midd << 31) + ad * bd)
+}
+
+func calcMod(x uint64) uint64 {
+	xu := x >> 61
+	xd := x & mask61
+	res := xu + xd
+	if (res >= m) {
+		res -= m
+	}
+	return res
 }
 
 type Chunker struct {
@@ -36,7 +62,6 @@ type Chunker struct {
 	minChunkSize int
 	maxChunkSize int
 }
-
 
 func NewChunker(
 	idx index.Indexer,
@@ -56,12 +81,12 @@ func (c *Chunker) ChunkAndSave(filepath string) ([][]byte, error) {
     hashes, err := c.findCutPoints(file)
     if err != nil {
         return nil, err
-    }
+	}
 	
 	return hashes, nil
 }
 
-//chunkDataを保存する
+// chunkDataを保存する
 func (c *Chunker) saveChunk(chunkData []byte) (hash []byte, err error) {
 	h := sha256.Sum256(chunkData)
 	hash = h[:]
@@ -91,17 +116,17 @@ func (c *Chunker) saveChunk(chunkData []byte) (hash []byte, err error) {
 func (c *Chunker) findCutPoints(reader io.Reader) ([][]byte, error) {
 	var res [][]byte
 
-	//チャンクのバッファ
+	// チャンクのバッファ
 	chunkBuf := make([]byte, 0, c.maxChunkSize)
 
-	//次に追い出す奴
+	// 次に追い出す奴
 	var window [k]byte
 	pos := 0
 
-	//ローリングハッシュ
+	// ローリングハッシュ
 	var hash uint64 = 0
 
-	//読み込みバッファ
+	// 読み込みバッファ
 	readBuf := make([]byte, 4096*8)
 
 	for {
@@ -118,11 +143,18 @@ func (c *Chunker) findCutPoints(reader io.Reader) ([][]byte, error) {
 
 				pos = (pos + 1) % k
 
-				hash = (hash - (uint64(old) * p) % m + m) % m
-				hash = (hash * b) % m
+				// hash = hash - old * p
+				hash = (hash - mul(uint64(old), p) + m) % m
+				// hash = (hash * b) % m
+				hash = mul(hash, b)
+				// hash = (hash + new) % m
 				hash = (hash + uint64(new)) % m
 
-				//今のチャンク幅
+				// hash = (hash - (uint64(old) * p) % m + m) % m
+				// hash = (hash * b) % m
+				// hash = (hash + uint64(new)) % m
+
+				// 今のチャンク幅
 				size := len(chunkBuf)
 				
 				isHit := (hash & mask) == 1
