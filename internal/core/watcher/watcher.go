@@ -9,7 +9,14 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/maisuma/local-information-tracker/internal/core/snapshot"
+	"github.com/maisuma/local-information-tracker/internal/engine/index"
 )
+
+type WatcherAPI interface {
+	Start(ctx context.Context) error
+	AddWatch(filepath string) error
+}
 
 // ファイルの有無の確認
 func FileExist(filepath string) bool {
@@ -22,21 +29,21 @@ func FileExist(filepath string) bool {
 	return err == nil
 }
 
-type Snapshotter interface { //エラーありかも
-	Snapshot(trackID int)
-}
+// type Snapshotter interface { //エラーありかも
+// 	Snapshot(trackID int)
+// }
 
 // Watcher が使うDB関数のインターフェース
 // (index.Index がこのインターフェースを満たします)
-type Index interface {
-	GetTrackID(filepath string) (int, error)
-	// (AddWatch/RemoveWatchのために) GetAllTrackedFiles() (map[int]string, error)
-}
+// type Indexer interface {
+// 	GetTrackID(filepath string) (int, error)
+// 	// (AddWatch/RemoveWatchのために) GetAllTrackedFiles() (map[int]string, error)
+// }
 
 type Watcher struct {
-	fsWatcher   *fsnotify.Watcher // fsnotifyのWatcher
-	snapshotter Snapshotter       // スナップショットを作成するためのインターフェース
-	index       Index             // trackIDを取得するためのインターフェース
+	fsWatcher   *fsnotify.Watcher     // fsnotifyのWatcher
+	snapshotter *snapshot.Snapshotter // スナップショットを作成するためのインターフェース
+	index       index.Indexer         // trackIDを取得するためのインターフェース
 
 	// デバウンス用のタイマーを管理するマップ
 	// key: filepath, value: timer
@@ -48,7 +55,7 @@ type Watcher struct {
 	debounceDuration time.Duration
 }
 
-func NewWatcher(snap Snapshotter, idx Index, debounceDuration time.Duration) (*Watcher, error) { //コンストラクタ
+func NewWatcher(snap *snapshot.Snapshotter, idx index.Indexer, debounceDuration time.Duration) (*Watcher, error) { //コンストラクタ
 	watcher, err := fsnotify.NewWatcher() // fsnotifyのWatcherを作成
 	if err != nil {
 		return nil, err
@@ -60,6 +67,10 @@ func NewWatcher(snap Snapshotter, idx Index, debounceDuration time.Duration) (*W
 		debounceTimers:   make(map[string]*time.Timer),
 		debounceDuration: debounceDuration,
 	}, nil
+}
+
+func (w *Watcher) AddWatch(filepath string) error { // ファイルを監視対象に追加 a
+	return w.fsWatcher.Add(filepath)
 }
 
 // ファイルシステムの監視
@@ -120,13 +131,8 @@ func (w *Watcher) finishDebounce(filepath string) {
 }
 
 func (w *Watcher) executeSnapshot(filepath string) error {
-	trackID, err := w.index.GetTrackID(filepath)
-	if err != nil {
-		// エラーハンドリング
-		return err
-	}
 
-	w.snapshotter.Snapshot(trackID)
+	err := w.snapshotter.Snapshot(filepath)
 	if err != nil {
 		// エラーハンドリング
 		return err
