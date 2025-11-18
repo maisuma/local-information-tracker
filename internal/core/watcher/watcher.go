@@ -64,7 +64,7 @@ func NewWatcher(snap *snapshot.Snapshotter, idx index.Indexer, debounceDuration 
 		fsWatcher:        watcher,
 		snapshotter:      snap,
 		index:            idx,
-		debounceTimers:   make(map[string]*time.Timer),
+		debounceTimers:   make(map[string]*time.Timer), // キーはファイルパス、値はタイマー
 		debounceDuration: debounceDuration,
 	}, nil
 }
@@ -73,7 +73,7 @@ func (w *Watcher) AddWatch(filepath string) error { // ファイルを監視対�
 	return w.fsWatcher.Add(filepath)
 }
 
-// ファイルシステムの監視
+// ファイルシステムの監視のループ
 func (w *Watcher) Start(ctx context.Context) error {
 	for {
 		select {
@@ -118,7 +118,7 @@ func (w *Watcher) triggerSnapshot(filepath string) {
 	})
 
 	// 新しいタイマーをマップに保存
-	w.debounceTimers[filepath] = timer
+	w.debounceTimers[filepath] = timer // filepathが未知の場合追加も行われる。
 
 }
 
