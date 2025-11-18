@@ -36,7 +36,7 @@ func (s *Snapshotter) Snapshot(filepath string) error {
 		return err
 	}
 	// trackIDを取得してコミットを追加
-	trackID, err := s.index.GetTrackID(filepath)
+	trackID, err := s.index.GetTrackIDByFile(filepath)
 	if err != nil {
 		return err
 	}
@@ -51,15 +51,15 @@ func (s *Snapshotter) Snapshot(filepath string) error {
 }
 
 func (s *Snapshotter) Restore(commitID int) error { //復元用
-	trackID, err := s.index.GetTrackID(commitID)
+	trackID, err := s.index.GetTrackIDByCommit(commitID)
 	if err != nil {
 		return err
 	}
-	filepath, err := s.index.GetFilePath(trackID)
+	filepath, err := s.index.GetFilepath(trackID)
 	if err != nil {
 		return err
 	}
-	Hashes, err := s.index.GetCommitHashes(commitID)
+	Hashes, err := s.index.GetHashes(commitID)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,10 @@ func (s *Snapshotter) Restore(commitID int) error { //復元用
 	defer out.Close()
 
 	for _, hash := range Hashes {
-		packID, offset, size := s.index.GetPack(hash) //GetPackがまだない
+		packID, offset, size, err := s.index.GetPack(hash) //GetPackがまだない
+		if err != nil {
+			return err
+		}
 		data, err := s.storage.Read(packID, offset, size)
 		if err != nil {
 			return err
@@ -82,5 +85,5 @@ func (s *Snapshotter) Restore(commitID int) error { //復元用
 			return err
 		}
 	}
-
+	return nil
 }
