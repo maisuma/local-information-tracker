@@ -22,7 +22,7 @@ type Indexer interface {
 	AddCommit(trackID int, hashes [][]byte) (int, error)
 	GetHashes(commitID int) ([][]byte, error)
 }
-//indexerインタフェースの実装構造体
+//indexerインターフェースの実装構造体
 type DBIndexer struct {
 	db *sql.DB
 }
@@ -198,13 +198,13 @@ func (i *DBIndexer) AddCommit(trackID int, hashes [][]byte) (int, error) {
 	}
 	//関数終了時にCommitされていなければロールバック
 	defer tx.Rollback()
-
+	
 	query := `INSERT INTO commits (track_id, created_at) VALUES (?, ?)`
-    
-    res, err := tx.Exec(query, trackID, time.Now()) 
-    if err != nil {
-        return 0, fmt.Errorf("failed to insert commit record: %w", err)
-    }
+
+	res, err := tx.Exec(query, trackID, time.Now()) 
+	if err != nil {
+		return 0, fmt.Errorf("failed to insert commit record: %w", err)
+	}
 	commitID, err := res.LastInsertId()
 	if err != nil {
 		return 0, err

@@ -44,7 +44,7 @@ func (s *Storage) Write(data []byte) (int, int64, int64, error) {
 	}
 
 	dataSize := int64(len(data))
-	//最後に書き込んだpakcIDから探索
+	//最後に書き込んだpackIDから探索
 	for {
 		packFilePath := filepath.Join(s.basePath, fmt.Sprintf("%d.pack", s.currentPackID))
 		fileInfo, statErr := os.Stat(packFilePath)
@@ -81,8 +81,10 @@ func (s *Storage) Write(data []byte) (int, int64, int64, error) {
 
 			offset, err = file.Seek(0, io.SeekEnd)
 			if err != nil {
-				file.Close()
-				return 0, 0, 0, fmt.Errorf("failed to seek: %w", err)
+				closeErr := file.Close()
+				if closeErr != nil {
+					return 0, 0, 0, fmt.Errorf("failed to seek: %w", err)
+				}
 			}
 		}
 
@@ -106,7 +108,7 @@ func (s *Storage) Write(data []byte) (int, int64, int64, error) {
 
 func (s *Storage) Read(packID int, offset int64, size int64) ([]byte, error) {
 	if offset < 0{
-		return nil, fmt.Errorf("invalid size: %d", offset)
+		return nil, fmt.Errorf("invalid offset: %d", offset)
 	}
 	if size <= 0 {
 		return nil, fmt.Errorf("invalid size: %d", size)
@@ -129,12 +131,11 @@ func (s *Storage) Read(packID int, offset int64, size int64) ([]byte, error) {
 	//データの読み取り
 	buffer := make([]byte, size)
 	_, err = io.ReadFull(file, buffer)
-		if err != nil {
-			if err == io.EOF {
-				return nil, io.ErrUnexpectedEOF
-			}
-			return nil, fmt.Errorf("failed to read data: %w", err)
+	if err != nil {
+		if err == io.EOF {
+			return nil, io.ErrUnexpectedEOF
 		}
-
-		return buffer, nil
+		return nil, fmt.Errorf("failed to read data: %w", err)
+	}
+	return buffer, nil
 }
