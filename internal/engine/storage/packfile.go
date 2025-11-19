@@ -107,7 +107,7 @@ func (s *Storage) Write(data []byte) (int, int64, int64, error) {
 }
 
 func (s *Storage) Read(packID int, offset int64, size int64) ([]byte, error) {
-	if offset < 0{
+	if offset < 0 {
 		return nil, fmt.Errorf("invalid offset: %d", offset)
 	}
 	if size <= 0 {
