@@ -8,6 +8,10 @@
 *.so
 *.dylib
 
+# Local binaries
+/lit
+/lit-watcher
+
 # Test binary, built with `go test -c`
 *.test
 
