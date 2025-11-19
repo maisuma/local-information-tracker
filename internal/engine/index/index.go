@@ -5,6 +5,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"time"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type Indexer interface {
@@ -149,7 +152,7 @@ func (i *DBIndexer) GetFilepath(trackID int) (string, error) {
 //ハッシュとpackfileの情報の対応関係を保存する。
 func (i *DBIndexer) SaveHash(hash []byte, packID int, offset int64, size int64) error {
 	hashStr := hex.EncodeToString(hash)
-	// 既に存在する場合は情報を更新(REPLACE)します
+	//既に存在する場合は情報を更新する
 	query := `INSERT OR REPLACE INTO hash_storage (hash, pack_id, offset, size) VALUES (?, ?, ?, ?)`
 	_, err := i.db.Exec(query, hashStr, packID, offset, size)
 	if err != nil {
@@ -193,28 +196,21 @@ func (i *DBIndexer) AddCommit(trackID int, hashes [][]byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	// パニックやエラー時のロールバック
-	defer func() {
-		if p := recover(); p != nil {
-			tx.Rollback()
-			panic(p)
-		} else if err != nil {
-			tx.Rollback()
-		}
-	}()
+	//関数終了時にCommitされていなければロールバック
+	defer tx.Rollback()
 
-	// 1. commitsテーブルへ挿入
-	// created_atはDBのデフォルト値(CURRENT_TIMESTAMP)を使用
-	res, err := tx.Exec(`INSERT INTO commits (track_id) VALUES (?)`, trackID)
-	if err != nil {
-		return 0, fmt.Errorf("failed to insert commit record: %w", err)
-	}
+	query := `INSERT INTO commits (track_id, created_at) VALUES (?, ?)`
+    
+    res, err := tx.Exec(query, trackID, time.Now()) 
+    if err != nil {
+        return 0, fmt.Errorf("failed to insert commit record: %w", err)
+    }
 	commitID, err := res.LastInsertId()
 	if err != nil {
 		return 0, err
 	}
 
-	// 2. commit_contentsテーブルへハッシュリストを順序付きで挿入
+	//commit_contentsテーブルへハッシュリストを順序付きで挿入
 	stmt, err := tx.Prepare(`INSERT INTO commit_contents (commit_id, hash_order, hash) VALUES (?, ?, ?)`)
 	if err != nil {
 		return 0, err
@@ -224,8 +220,7 @@ func (i *DBIndexer) AddCommit(trackID int, hashes [][]byte) (int, error) {
 	for order, h := range hashes {
 		hashStr := hex.EncodeToString(h)
 		
-		// 注意: ER図の外部キー制約により、hash_storageにこのハッシュが存在しないとエラーになります。
-		// 事前にSaveHashなどが呼ばれている前提です。
+		//外部キー制約により、hash_storageにこのハッシュが存在しないとエラーになる。
 		_, err = stmt.Exec(commitID, order, hashStr)
 		if err != nil {
 			return 0, fmt.Errorf("failed to link hash %s to commit: %w", hashStr, err)
@@ -240,9 +235,7 @@ func (i *DBIndexer) AddCommit(trackID int, hashes [][]byte) (int, error) {
 }
 
 //コミットのハッシュを取得する。
-
 func (i *DBIndexer) GetHashes(commitID int) ([][]byte, error) {
-	// hash_orderの順序通りに取得することがファイルの復元において重要です
 	query := `SELECT hash FROM commit_contents WHERE commit_id = ? ORDER BY hash_order ASC`
 	rows, err := i.db.Query(query, commitID)
 	if err != nil {
