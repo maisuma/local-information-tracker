@@ -266,7 +266,7 @@ func (i *DBIndexer) GetHashes(commitID int) ([][]byte, error) {
 	return hashes, nil
 }
 
-//現在のtrackIDを返す
+//全てのtrackIDのリストを返す
 func (i *DBIndexer) GetTracksList() ([]int, error) {
 	query := `SELECT track_id FROM tracked_files`
 	rows, err := i.db.Query(query)
