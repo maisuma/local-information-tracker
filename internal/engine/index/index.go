@@ -21,6 +21,8 @@ type Indexer interface {
 	LookupHash(hash []byte) (bool, error)
 	AddCommit(trackID int, hashes [][]byte) (int, error)
 	GetHashes(commitID int) ([][]byte, error)
+	GetTracks() ([]int, error)
+	GetCommits(trackID int) ([]int, error)
 }
 //indexerインターフェースの実装構造体
 type DBIndexer struct {
