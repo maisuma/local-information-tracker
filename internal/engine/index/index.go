@@ -284,7 +284,7 @@ func (i *DBIndexer) GetTracksList() ([]int, error) {
 		trackIDs = append(trackIDs, id)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error iterating tracked files: %w", err)
 	}
 	return trackIDs, nil
 }
