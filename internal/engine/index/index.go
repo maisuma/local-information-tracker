@@ -21,8 +21,8 @@ type Indexer interface {
 	LookupHash(hash []byte) (bool, error)
 	AddCommit(trackID int, hashes [][]byte) (int, error)
 	GetHashes(commitID int) ([][]byte, error)
-	GetTracks() ([]int, error)
-	GetCommits(trackID int) ([]int, error)
+	GetTracksList() ([]int, error)
+	GetCommitsList(trackID int) ([]int, error)
 }
 //indexerインターフェースの実装構造体
 type DBIndexer struct {
@@ -264,4 +264,50 @@ func (i *DBIndexer) GetHashes(commitID int) ([][]byte, error) {
 	}
 
 	return hashes, nil
+}
+
+//現在のtrackIDを返す
+func (i *DBIndexer) GetTracksList() ([]int, error) {
+	query := `SELECT track_id FROM tracked_files`
+	rows, err := i.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query tracked files: %w", err)
+	}
+	defer rows.Close()
+
+	var trackIDs []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		trackIDs = append(trackIDs, id)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return trackIDs, nil
+}
+
+//trackIDのコミット履歴を返す
+func (i *DBIndexer) GetCommitsList(trackID int) ([]int, error) {
+	query := `SELECT commit_id FROM "commits" WHERE track_id = ? ORDER BY commit_id DESC`
+	rows, err := i.db.Query(query, trackID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query commits: %w", err)
+	}
+	defer rows.Close()
+
+	var commitIDs []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		commitIDs = append(commitIDs, id)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return commitIDs, nil
 }
