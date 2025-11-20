@@ -44,7 +44,6 @@ type Watcher struct {
 	fsWatcher   *fsnotify.Watcher     // fsnotifyのWatcher
 	snapshotter *snapshot.Snapshotter // スナップショットを作成するためのインターフェース
 	index       index.Indexer         // trackIDを取得するためのインターフェース
-
 	// デバウンス用のタイマーを管理するマップ
 	// key: filepath, value: timer
 	debounceTimers map[string]*time.Timer
@@ -97,7 +96,9 @@ func (w *Watcher) Start(ctx context.Context) error {
 				return nil
 			}
 			return err
-
+		case msg := <-w.index.NotifyChan():
+			fmt.Printf("Received notification: %s\n", msg)
+			w.AddWatch(msg) // 監視対象に追加
 		}
 
 	}
