@@ -279,7 +279,7 @@ func (i *DBIndexer) GetTracksList() ([]int, error) {
 	for rows.Next() {
 		var id int
 		if err := rows.Scan(&id); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan track ID: %w", err)
 		}
 		trackIDs = append(trackIDs, id)
 	}
