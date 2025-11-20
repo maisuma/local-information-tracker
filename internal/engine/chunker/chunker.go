@@ -144,7 +144,7 @@ func (c *Chunker) findCutPoints(reader io.Reader) ([][]byte, error) {
 				pos = (pos + 1) % k
 
 				// hash = hash - old * p
-				hash = (hash - mul(uint64(old), p) + m) % m
+				hash = (m + hash - mul(uint64(old), p)) % m
 				// hash = (hash * b) % m
 				hash = mul(hash, b)
 				// hash = (hash + new) % m
