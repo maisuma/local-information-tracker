@@ -13,7 +13,10 @@ func Add(filepath string) {
 	if !watcher.FileExist(filepath) {
 		fmt.Println("File not exist")
 	} else {
-		track_id, err := new(index.DBIndexer).AddTrack(filepath) //トラックIDの発行と取得
+
+		idx, err := index.NewDBIndexer(filepath)             //構造体を生成
+		track_id, err := idx.AddTrack(filepath)              //トラックIDの発行と取得
+		fmt.Println("AddTrack returned track_id:", track_id) //デバッグ用
 		if err != nil {
 			fmt.Println("Error occured in adding track")
 			return
