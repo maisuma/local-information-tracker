@@ -1,14 +1,9 @@
 package cli
 
-import(
-	//index.何かの使用 indexパッケージ
-	"github.com/maisuma/local-information-tracker/internal/engine/index"
-	"strings"
-    "fmt"
-    "os"
-    "log"
-)
+// index.何かの使用 indexパッケージ
+// GetFilepath(track_id)で一意なファイルパスが取得できる。
+// ①index.goから追跡対象の ファイルのtrackIDをまとめて入手
+// ②一つずつtrack IDからファイルパスに変換して標準出力
+func List() {
 
-func List(track_id int) {
-	
 }

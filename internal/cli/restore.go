@@ -2,7 +2,7 @@ package cli
 
 import (
 	"fmt"
-	//snapshot.Restore(track_id, commitID)の使用 snapshotパッケージ
+	//Restore(track_id, commitID)の使用 snapshotパッケージ
 	"github.com/maisuma/local-information-tracker/internal/core/snapshot"
 )
 

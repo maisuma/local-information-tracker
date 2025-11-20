@@ -20,116 +20,122 @@ const (
 type Storage struct {
 	basePath string
 	mutex sync.Mutex
+	currentPackID int //packIDの探索時間を短縮
 }
 
 func New(basePath string) (*Storage, error) {
 	storagePath := filepath.Join(basePath, storageDirName)
 	if err := os.MkdirAll(storagePath, 0755); err != nil {
-		return nil,fmt.Errorf("failed to create storage directory: %w",err)
+		return nil,fmt.Errorf("failed to create storage directory: %w", err)
 	}
-	return &Storage{basePath: storagePath},nil
+	return &Storage{
+		basePath: storagePath,
+		currentPackID: 1,
+	}, nil
 }
 
-func (s *Storage) findPackFile(dataSize int64) (string, error) {
-    // 新しい .pack ファイルを作成または既存ファイルを選択
-    var packFilePath string
-    for i := 1; ; i++ {
-        packFilePath = filepath.Join(s.basePath, fmt.Sprintf("%d.pack", i))
-        fileInfo, err := os.Stat(packFilePath)
-
-        if os.IsNotExist(err) {
-            // .pack ファイルが存在しない場合は新規作成
-            file, err := os.OpenFile(packFilePath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
-            if err != nil {
-                if os.IsExist(err) {
-					//競合が発生したら、再度ファイルを確認する
-					continue
-				}
-				return "", fmt.Errorf("failed to create packfile: %w",err)
-            }
-            file.Close()
-            return packFilePath, nil
-        }
-		if err != nil {
-			return "", fmt.Errorf("failed to stat packfile: %w",err)
-		}
-        // ファイルサイズを確認し、データを追加できるかチェック
-        if fileInfo.Size()+dataSize <= maxPackSize {
-            return packFilePath, nil
-        }
-    }
-}
 
 func (s *Storage) Write(data []byte) (int, int64, int64, error) {
 	//複数のWrite()が同時に動作しないようにする
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	if len(data) == 0 {
-		return 0, 0, 0, fmt.Errorf("emptydata")
+		return 0, 0, 0, fmt.Errorf("empty data")
 	}
 
 	dataSize := int64(len(data))
-	//.packファイルを探す
-	packFilePath, err := s.findPackFile(dataSize)
-	if err != nil{
-		return  0, 0, 0, err
-	}
+	//最後に書き込んだpackIDから探索
+	for {
+		packFilePath := filepath.Join(s.basePath, fmt.Sprintf("%d.pack", s.currentPackID))
+		fileInfo, statErr := os.Stat(packFilePath)
 
-	file, err := os.OpenFile(packFilePath, os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		return 0, 0, 0,err
-	}
-	
-	defer file.Close()
+		var file *os.File
+		var err error
+		var offset int64 = 0
 
-	//offsetを求める
-	offset , err := file.Seek(0, io.SeekEnd)
-	if err != nil {
-		return 0, 0, 0, fmt.Errorf("failed to seek: %w",err)
-	}
+		if os.IsNotExist(statErr) {
+			file, err = os.OpenFile(packFilePath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
+			if err != nil {
+				if os.IsExist(err) {
+					continue // 競合したら再試行
+				}
+				return 0, 0, 0, fmt.Errorf("failed to create packfile: %w", err)
+			}
+			//新規ファイルのoffsetは0
+			offset = 0
 
-	//データの書き込み
-	writtenBytes, err := file.Write(data)
-	if err != nil {
-		return 0, 0, 0, fmt.Errorf("failed to write data: %w",err)
+		} else if statErr != nil {
+			return 0, 0, 0, fmt.Errorf("failed to stat packfile: %w", statErr)
+
+		} else {
+			if fileInfo.Size()+dataSize > maxPackSize {
+				//容量オーバーなら次のIDへ進んでループ継続
+				s.currentPackID++
+				continue
+			}
+
+			file, err = os.OpenFile(packFilePath, os.O_WRONLY|os.O_APPEND, 0644)
+			if err != nil {
+				return 0, 0, 0, fmt.Errorf("failed to open packfile: %w", err)
+			}
+
+			offset, err = file.Seek(0, io.SeekEnd)
+			if err != nil {
+				closeErr := file.Close()
+				if closeErr != nil {
+					return 0, 0, 0, fmt.Errorf("failed to seek: %w", err)
+				}
+			}
+		}
+
+		n, err := file.Write(data)
+		closeErr := file.Close()
+
+		if err != nil {
+			return 0, 0, 0, fmt.Errorf("failed to write data: %w", err)
+		}
+		if closeErr != nil {
+			return 0, 0, 0, fmt.Errorf("failed to close file: %w", closeErr)
+		}
+		if n != len(data) {
+			return 0, 0, 0, fmt.Errorf("incomplete write")
+		}
+
+		// 成功したら現在のPackIDとオフセットを返す
+		return s.currentPackID, offset, int64(n), nil
 	}
-	
-	//データが完全に書きこめたか確認
-	if writtenBytes != len(data) {
-		return 0, 0, 0, fmt.Errorf("incomplete write")
-	}
-	var packID int
-	_, err = fmt.Sscanf(filepath.Base(packFilePath), "%d.pack", &packID)
-	if err != nil {
-		return 0, 0, 0, fmt.Errorf("failed to parse packID:%w",err)
-	}
-	return packID, offset, int64(writtenBytes), nil
 }
 
 func (s *Storage) Read(packID int, offset int64, size int64) ([]byte, error) {
+	if offset < 0 {
+		return nil, fmt.Errorf("invalid offset: %d", offset)
+	}
 	if size <= 0 {
-		return nil, fmt.Errorf("invalid size:%d",size)
+		return nil, fmt.Errorf("invalid size: %d", size)
 	}
 	packFilePath := filepath.Join(s.basePath, fmt.Sprintf("%d.pack", packID))
 	//ファイルを開く
 	file, err := os.Open(packFilePath)
 
 	if err != nil{
-		return nil, err
+		return nil, fmt.Errorf("failed to open packfile %s: %w", packFilePath, err)
 	}
 	defer file.Close()
 
 	//指定されたoffsetへ移動
 	_, err = file.Seek(offset, 0)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to seek to offset %d: %w", offset, err)
 	}
 
 	//データの読み取り
 	buffer := make([]byte, size)
-	readData, err := file.Read(buffer)
+	_, err = io.ReadFull(file, buffer)
 	if err != nil {
-		return nil, err
+		if err == io.EOF {
+			return nil, io.ErrUnexpectedEOF
+		}
+		return nil, fmt.Errorf("failed to read data: %w", err)
 	}
-	return buffer[:readData], nil
+	return buffer, nil
 }
