@@ -9,7 +9,7 @@ import (
 func Restore(commitID int) {
 	err := new(snapshot.Snapshotter).Restore(commitID)
 	if err != nil {
-		fmt.Println("Error occured in restoring")
+		fmt.Println("Error occurred in restoring")
 		return
 	}
 	fmt.Println("Restoring is complete")
