@@ -22,7 +22,7 @@ import (
 func FilenameToAbsFilepath(filename string) (filepath string, err error) {
 	// filepath.Abs は、カレントディレクトリを基準に絶対パスを返します。
 	// これにより、ユーザーが "file.txt" や "./file.txt" のように入力しても、
-	// DBには一貫した絶対パスが保存されます。
+	// DBには一貫した絶対パスが保存されます
 	//nilはnull
 	filepath, err := filepath.Abs(filename)
 	if err != nil {
