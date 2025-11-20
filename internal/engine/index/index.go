@@ -302,7 +302,7 @@ func (i *DBIndexer) GetCommitsList(trackID int) ([]int, error) {
 	for rows.Next() {
 		var id int
 		if err := rows.Scan(&id); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan commit ID: %w", err)
 		}
 		commitIDs = append(commitIDs, id)
 	}
