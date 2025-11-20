@@ -93,7 +93,7 @@ func (i *DBIndexer) initSchema() error {
 //新しいファイルをトラック対象に追加する
 func (i *DBIndexer) AddTrack(filepath string) (int, error) {
 	query := `INSERT INTO tracked_files (filepath) VALUES (?)`
-	res , err := i.db.Exec(query, filepath)
+	res, err := i.db.Exec(query, filepath)
 	if err != nil {
 		id, getErr := i.GetTrackIDByFile(filepath)
 		if getErr == nil {

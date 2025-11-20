@@ -107,7 +107,7 @@ func (s *Storage) Write(data []byte) (int, int64, int64, error) {
 }
 
 func (s *Storage) Read(packID int, offset int64, size int64) ([]byte, error) {
-	if offset < 0{
+	if offset < 0 {
 		return nil, fmt.Errorf("invalid offset: %d", offset)
 	}
 	if size <= 0 {
@@ -125,7 +125,7 @@ func (s *Storage) Read(packID int, offset int64, size int64) ([]byte, error) {
 	//指定されたoffsetへ移動
 	_, err = file.Seek(offset, 0)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to seek to offset %d: %w", offset, err)
 	}
 
 	//データの読み取り
