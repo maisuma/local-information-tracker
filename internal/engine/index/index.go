@@ -21,8 +21,6 @@ type Indexer interface {
 	LookupHash(hash []byte) (bool, error)
 	AddCommit(trackID int, hashes [][]byte) (int, error)
 	GetHashes(commitID int) ([][]byte, error)
-	GetTracksList() ([]int, error)            //追跡対象のtrackIDをまとめて入手
-	GetCommitsLog(trackID int) ([]int, error) //指定trackIDのコミットIDリストを入手
 }
 
 // indexerインターフェースの実装構造体
