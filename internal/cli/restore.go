@@ -1,16 +1,17 @@
 package cli
 
-import(
-	//snapshot.restore(track_id, commitID)の使用 snapshotパッケージ
+import (
+	"fmt"
+	//snapshot.Restore(track_id, commitID)の使用 snapshotパッケージ
 	"github.com/maisuma/local-information-tracker/internal/core/snapshot"
-	"strings"
-    "fmt"
-    "os"
-    "log"
 )
 
-func Restore(track_id int, commitID int) {
-	snapshot.Restore(track_id, commitID)
+func Restore(commitID int) {
+	err := new(snapshot.Snapshotter).Restore(commitID)
+	if err != nil {
+		fmt.Println("Error occured in restoring")
+		return
+	}
 	fmt.Println("Restoring is complete")
 	return
 }

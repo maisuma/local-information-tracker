@@ -1,4 +1,5 @@
-package lit
+//package lit 本番用
+package main //デバッグ用
 
 import (
 	//add等の関数の使用
@@ -30,9 +31,16 @@ func FilenameToAbsFilepath(filename string) (filepath string, err error) {
 
 func main() {
 
+	while true {//デバッグ用無限ループ
+
+	scanner := bufio.NewScanner(os.Stdin)
+
+	// Fieldsは、スペース、タブ、改行で区切られたトークンを返す
+	words := strings.Fields(sacnner)
+
 	//コマンドライン引数を取得
 	// os.Args は、コマンドライン引数全体を要素ごとに分割して保持しています。
-    args := os.Args
+    //args := os.Args　本番用
 
 	//正しいコマンド入力かの確認
 	//
@@ -111,4 +119,6 @@ func main() {
 			fmt.Println("Please include Command")
 		}
 	}
+
+}//デバッグ用無限ループ終わり
 }
