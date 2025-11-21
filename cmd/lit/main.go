@@ -96,7 +96,7 @@ func main() {
 		}
 	default:
 		fmt.Println("Unknown command:")
-		fmt.Println("Pleadease use one of the following commands")
+		fmt.Println("Please use one of the following commands")
 		fmt.Println("add <filepath>")
 		fmt.Println("remove <filepath>")
 		fmt.Println("gc")
