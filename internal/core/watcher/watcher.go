@@ -112,7 +112,7 @@ func (w *Watcher) Start(ctx context.Context) error {
 				if _, ok := w.debounceTimers[filepath]; !ok { // 既にデバウンス中なのかを確認
 					//でバウンス中でなければ
 					w.AddWatch(filepath)
-					w.executeSnapshot(filepath)
+					//w.executeSnapshot(filepath)
 				}
 
 			}
