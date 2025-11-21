@@ -25,7 +25,7 @@ func Remove(targetFilepath string) {
 	}
 	err = idx.RemoveTrack(track_id) //追跡対象からの除外または停止
 	if err != nil {
-		fmt.Println("Error occured in removing track")
+		fmt.Println("Error occurred in removing track")
 		return
 	}
 	fmt.Println("Removing track is complete")
