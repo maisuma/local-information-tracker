@@ -32,8 +32,8 @@ func main() {
 
 	//これら以外の初期化コードも必要
 
-	basePath := "./testdata"
-	dbPath := "./testdata/index.db"
+	basePath := "."
+	dbPath := "./lit.db"
 	if err := os.MkdirAll(basePath, 0755); err != nil {
 		log.Fatalf("Failed to create base path: %v", err)
 	}
@@ -41,26 +41,22 @@ func main() {
 
 	// Indexerを初期化
 	idx, err := index.NewDBIndexer(dbPath)
-	fmt.Println("1")
 	if err != nil {
 		log.Fatalf("Failed to initialize indexer: %v", err)
 	}
 	defer idx.Close()
 
 	stor, err := storage.New(basePath)
-	fmt.Println("2")
 	if err != nil {
 		log.Fatalf("Failed to initialize storage: %v", err)
 	}
 
 	// Chunkerを初期化
 	ch := chunker.NewChunker(idx, stor, 8192, 4096, 16384)
-	fmt.Println("3")
 
 	// Snapshotterを初期化
 	snap := snapshot.NewSnapshotter(ch, stor, idx)
-	fmt.Println("4")
-
+	
 	watcherImpl, err := watcher.NewWatcher(snap, idx, defaultDuration)
 	if err != nil {
 		log.Fatalf("watcher init failed: %v", err)
@@ -74,5 +70,6 @@ func main() {
 		}
 	}()
 	//追跡対象のファイルを追加するときのコードも必要
-
+	<-ctx.Done()
+	fmt.Println("main: context canceled, shutting down")
 }
