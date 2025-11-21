@@ -75,6 +75,7 @@ func (w *Watcher) AddWatch(filepath string) error { // ファイルを監視対�
 
 // ファイルシステムの監視のループ
 func (w *Watcher) Start(ctx context.Context) error {
+	tick := time.NewTicker(3 * time.Second)
 	for {
 		select {
 		case <-ctx.Done():
@@ -97,9 +98,26 @@ func (w *Watcher) Start(ctx context.Context) error {
 				return nil
 			}
 			return err
+		case <-tick.C:
+			trackIDs, err := w.index.GetTracksList()
+			if err != nil {
+				return err
+			}
+
+			for _, trackID := range trackIDs {
+				filepath, err := w.index.GetFilepath(trackID)
+				if err != nil {
+					return err
+				}
+				if _, ok := w.debounceTimers[filepath]; !ok { // 既にデバウンス中なのかを確認
+					//でバウンス中でなければ
+					w.AddWatch(filepath)
+					w.executeSnapshot(filepath)
+				}
+
+			}
 
 		}
-
 	}
 }
 
