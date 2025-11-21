@@ -1,25 +1,35 @@
 package cli
 
 import (
-	//GetCommitsList(trackID)の使用 indexパッケージ
 	"fmt"
+	"path/filepath"
 
 	"github.com/maisuma/local-information-tracker/internal/engine/index"
 )
 
-//①trackIDを使ってindex.goの関数を呼び出してcommit IDのリスト？を取得
-//②全部表示
-
-// Logは、指定されたファイルの変更履歴を表示します。
-func Log(track_id int) {
-	commit_list, err := new(index.DBIndexer).GetCommitsList(track_id) //trackIDからコミットID一覧を取得
+func Log(targetFilepath string) {
+	dbPath, err := filepath.Abs("./lit.db") //データベースファイルへの絶対パスの取得
 	if err != nil {
-		fmt.Println("Error occured in getting commit list")
+		fmt.Println("Error resolving database path:%w", err)
+		return
+	}
+	idx, err := index.NewDBIndexer(dbPath) //構造体を生成
+	if err != nil {
+		fmt.Println("Error occured in creating indexer:%w", err)
+		return
+	}
+	track_id, err := idx.GetTrackIDByFile(targetFilepath) //filepathからtrackIDを取得
+	if err != nil {
+		fmt.Println("Error in getting track ID by filepath")
+		return
+	}
+	commits, err := idx.GetCommitsList(track_id) //trackIDを使って変更履歴のリストを取得
+	if err != nil {
+		fmt.Println("Error occured in getting commits list")
 		return
 	} else {
-		fmt.Printf("Change history for Track ID:%d\n", track_id)
-		for _, commit_id := range commit_list {
-			fmt.Printf("Commit ID:%d\n", commit_id)
+		for _, commitID := range commits {
+			fmt.Printf("Commit ID:%d\n", commitID)
 		}
 		return
 	}
