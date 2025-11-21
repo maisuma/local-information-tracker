@@ -26,7 +26,6 @@ func Restore(commitID int) {
 
 	// Indexerを初期化
 	idx, err := index.NewDBIndexer(dbPath)
-	fmt.Println("1")
 	if err != nil {
 		log.Fatalf("Failed to initialize indexer: %v", err)
 	}
@@ -34,18 +33,15 @@ func Restore(commitID int) {
 
 	// Storageを初期化
 	stor, err := storage.New(basePath)
-	fmt.Println("2")
 	if err != nil {
 		log.Fatalf("Failed to initialize storage: %v", err)
 	}
 
 	// Chunkerを初期化
 	ch := chunker.NewChunker(idx, stor, 8192, 4096, 16384)
-	fmt.Println("3")
 
 	// Snapshotterを初期化
 	snap := snapshot.NewSnapshotter(ch, stor, idx)
-	fmt.Println("4")
 
 	// 指定された commitID を使って復元
 	err = snap.Restore(commitID)

@@ -35,65 +35,65 @@ func main() {
 		if len(parts) != 2 {
 			fmt.Println("Usage:add <filepath>")
 			return
-		} else {
-			abspath, err := FilenameToAbsFilepath(parts[1])
-			if err != nil {
-				fmt.Println("Error in getting absolute filepath")
-				return
-			}
-			cli.Add(abspath)
 		}
+		abspath, err := FilenameToAbsFilepath(parts[1])
+		if err != nil {
+			fmt.Println("Error in getting absolute filepath")
+			return
+		}
+		cli.Add(abspath)
+
 	case "remove":
 		if len(parts) != 2 {
 			fmt.Println("Usage:remove <filepath>")
 			return
-		} else {
-			abspath, err := FilenameToAbsFilepath(parts[1])
-			if err != nil {
-				fmt.Println("Error in getting absolute filepath")
-				return
-			}
-			cli.Remove(abspath)
 		}
+		abspath, err := FilenameToAbsFilepath(parts[1])
+		if err != nil {
+			fmt.Println("Error in getting absolute filepath")
+			return
+		}
+		cli.Remove(abspath)
+
 	case "gc":
 		if len(parts) != 1 {
 			fmt.Println("Usage:gc")
 			return
-		} else {
-			cli.Gc()
 		}
+		cli.Gc()
+
 	case "log":
 		if len(parts) != 2 {
 			fmt.Println("Usage:log <filepath>")
 			return
-		} else {
-			abspath, err := FilenameToAbsFilepath(parts[1])
-			if err != nil {
-				fmt.Println("Error in getting absolute filepath")
-				return
-			}
-			cli.Log(abspath)
 		}
+		abspath, err := FilenameToAbsFilepath(parts[1])
+		if err != nil {
+			fmt.Println("Error in getting absolute filepath")
+			return
+		}
+		cli.Log(abspath)
+
 	case "restore":
 		if len(parts) != 2 {
 			fmt.Println("Usage:restore <commitID>")
 			return
-		} else {
-			var commitID int
-			_, err := fmt.Sscanf(parts[1], "%d", &commitID)
-			if err != nil {
-				fmt.Println("Error in parsing commit ID")
-				return
-			}
-			cli.Restore(commitID)
 		}
+		var commitID int
+		_, err := fmt.Sscanf(parts[1], "%d", &commitID)
+		if err != nil {
+			fmt.Println("Error in parsing commit ID")
+			return
+		}
+		cli.Restore(commitID)
+
 	case "list":
 		if len(parts) != 1 {
 			fmt.Println("Usage:list")
 			return
-		} else {
-			cli.List()
 		}
+		cli.List()
+
 	default:
 		fmt.Println("Unknown command:")
 		fmt.Println("Please use one of the following commands")
