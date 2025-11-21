@@ -98,6 +98,10 @@ func (w *Watcher) Start(ctx context.Context) error {
 			return err
 		case msg := <-w.index.NotifyChan():
 			fmt.Printf("Received notification: %s\n", msg)
+			_, err := w.index.GetTrackIDByFile(msg)
+			if err != nil {
+				return err
+			}
 			w.AddWatch(msg) // 監視対象に追加
 		}
 
