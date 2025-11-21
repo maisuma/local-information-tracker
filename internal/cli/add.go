@@ -19,7 +19,7 @@ func Add(targetFilepath string) {
 		}
 		idx, err := index.NewDBIndexer(dbPath) //構造体を生成
 		if err != nil {
-			fmt.Println("Error occured in creating indexer:%w", err)
+			fmt.Printf("Error occured in creating indexer: %v\n", err)
 			return
 		}
 		track_id, err := idx.AddTrack(targetFilepath) //トラックIDの発行と取得
