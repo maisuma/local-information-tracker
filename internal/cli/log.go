@@ -29,8 +29,11 @@ func Log(targetFilepath string) {
 		fmt.Printf("Error occurred in getting commits list: %v\n", err)
 		return
 	}
-	for _, commitID := range commits {
-		fmt.Printf("Commit ID:%d\n", commitID)
+ 	fmt.Println("Commit History:")
+    fmt.Println("==============================")
+	for i, commitID := range commits {
+		fmt.Printf("%d. Commit ID: %d\n", i+1, commitID)
 	}
+    fmt.Println("==============================")
 	return
 }
