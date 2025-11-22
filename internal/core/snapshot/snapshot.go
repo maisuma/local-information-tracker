@@ -5,6 +5,8 @@ package snapshot
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/maisuma/local-information-tracker/internal/engine/chunker"
 	"github.com/maisuma/local-information-tracker/internal/engine/index"
@@ -55,7 +57,7 @@ func (s *Snapshotter) Restore(commitID int) error { //復元用
 	if err != nil {
 		return err
 	}
-	filepath, err := s.index.GetFilepath(trackID)
+	origPath, err := s.index.GetFilepath(trackID)
 	if err != nil {
 		return err
 	}
@@ -63,8 +65,14 @@ func (s *Snapshotter) Restore(commitID int) error { //復元用
 	if err != nil {
 		return err
 	}
+	_, _, ts := s.index.Getcommit(commitID)
+	dir := filepath.Dir(origPath)
+	base := filepath.Base(origPath)
+	ext := filepath.Ext(base)
+	name := strings.TrimSuffix(base, ext)
+	outPath := filepath.Join(dir, name+"-"+ts+ext)
 
-	out, err := os.OpenFile(filepath, os.O_WRONLY|os.O_APPEND|os.O_TRUNC, 0644)
+	out, err := os.OpenFile(outPath, os.O_WRONLY|os.O_APPEND|os.O_TRUNC, 0644)
 	//O_CREATE追加の可能性あり 追跡対象が消えたら新規作成するかも
 
 	if err != nil {
