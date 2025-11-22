@@ -14,7 +14,7 @@ type Indexer interface {
 	AddTrack(filepath string) (int, error)
 	RemoveTrack(trackID int) error
 	GetTrackIDByFile(filepath string) (int, error)
-	GetTrackIDByCommit(commitID int) (int, error)
+	//GetTrackIDByCommit(commitID int) (int, error)
 	GetFilepath(trackID int) (string, error)
 	SaveHash(hash []byte, packID int, offset int64, size int64) error
 	GetPack(hash []byte) (int, int64, int64, error)
@@ -23,10 +23,17 @@ type Indexer interface {
 	GetHashes(commitID int) ([][]byte, error)
 	GetTracksList() ([]int, error)
 	GetCommitsList(trackID int) ([]int, error)
+	GetCommit(commitID int) (Commit, error)
 }
 //indexerインターフェースの実装構造体
 type DBIndexer struct {
 	db *sql.DB
+}
+
+type Commit struct {
+	TrackID int
+	CommitID int
+	Created_at time.Time
 }
 
 //データベース接続を初期化
@@ -310,4 +317,25 @@ func (i *DBIndexer) GetCommitsList(trackID int) ([]int, error) {
 		return nil, fmt.Errorf("error iterating commits: %w", err)
 	}
 	return commitIDs, nil
+}
+
+func (i *DBIndexer) GetCommit(commitID int) (Commit, error) {
+	var c Commit
+	var created_atStr string
+	query := `SELECT commit_id, track_id, created_at FROM "commits" WHERE commit_id = ?`
+	err := i.db.QueryRow(query, commitID).Scan(&c.CommitID, &c.TrackID, &created_atStr)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Commit{}, fmt.Errorf("commitID %d not found: %w", commitID, err)
+	}
+	if err != nil {
+		return Commit{}, fmt.Errorf("failed to query commit: %w", err)
+	}
+	if t, perr := time.Parse(time.RFC3339, created_atStr); perr == nil {
+		c.Created_at =t
+	}else if t, perr := time.Parse("2006-01-02_15:04:05", created_atStr); perr == nil {
+		c.Created_at = t
+	}else {
+		c.Created_at = time.Time{}
+	}
+	return c, nil
 }
