@@ -331,7 +331,7 @@ func (i *DBIndexer) GetCommit(commitID int) (Commit, error) {
 		return Commit{}, fmt.Errorf("failed to query commit: %w", err)
 	}
 	if t, perr := time.Parse(time.RFC3339, created_atStr); perr == nil {
-		c.Created_at =t
+		c.Created_at = t
 	}else if t, perr := time.Parse("2006-01-02_15:04:05", created_atStr); perr == nil {
 		c.Created_at = t
 	}else {
