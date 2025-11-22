@@ -13,7 +13,7 @@ import (
 func FilenameToAbsFilepath(filename string) (abspath string, err error) {
 	abspath, err = filepath.Abs(filename)
 	if err != nil {
-		log.Printf("エラー: ファイルパス '%s' の絶対パスを取得できませんでした: %v", filename, err)
+		log.Printf("Error in resolving absolute filepath: %v", err)
 		return "", err
 	}
 	return abspath, nil

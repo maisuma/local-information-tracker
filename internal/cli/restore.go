@@ -48,6 +48,9 @@ func Restore(commitID int) {
 	if err != nil {
 		log.Fatalf("Failed to restore commit: %v", err)
 	}
-
-	fmt.Println("Restore completed successfully")
+	fmt.Println("Restore completed successfully!")
+	fmt.Println("==============================")
+	fmt.Printf("You have been restored to commit ID: %d\n", commitID)
+	fmt.Println("==============================")
+	return
 }
