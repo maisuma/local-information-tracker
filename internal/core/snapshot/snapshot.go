@@ -9,6 +9,7 @@ import (
 	"github.com/maisuma/local-information-tracker/internal/engine/chunker"
 	"github.com/maisuma/local-information-tracker/internal/engine/index"
 	"github.com/maisuma/local-information-tracker/internal/engine/storage"
+	"github.com/schollz/progressbar/v3"
 )
 
 // 依存するチームAのコンポーネントを保持する
@@ -19,7 +20,7 @@ type Snapshotter struct {
 }
 
 type SnapshotterAPI interface {
-	Snapshot(filepath string) error
+	Snapshot(filepath string, pb *progressbar.ProgressBar) error
 	Restore(trackID int, commitID int) error
 }
 
@@ -50,7 +51,7 @@ func (s *Snapshotter) Snapshot(filepath string) error {
 	return nil
 }
 
-func (s *Snapshotter) Restore(commitID int) error { //復元用
+func (s *Snapshotter) Restore(commitID int, pb *progressbar.ProgressBar) error { //復元用
 	trackID, err := s.index.GetTrackIDByCommit(commitID)
 	if err != nil {
 		return err
@@ -84,6 +85,7 @@ func (s *Snapshotter) Restore(commitID int) error { //復元用
 		if _, err := out.Write(data); err != nil {
 			return err
 		}
+		pb.Add64(size)
 	}
 	return nil
 }

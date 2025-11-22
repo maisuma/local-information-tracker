@@ -9,6 +9,7 @@ import (
 	"github.com/maisuma/local-information-tracker/internal/engine/chunker"
 	"github.com/maisuma/local-information-tracker/internal/engine/index"
 	"github.com/maisuma/local-information-tracker/internal/engine/storage"
+	"github.com/schollz/progressbar/v3"
 )
 
 func Restore(commitID int) {
@@ -43,8 +44,16 @@ func Restore(commitID int) {
 	// Snapshotterを初期化
 	snap := snapshot.NewSnapshotter(ch, stor, idx)
 
+    bar := progressbar.NewOptions(-1, // コンテンツ長が不明な場合は -1 を指定
+        progressbar.OptionSetDescription("Restoring..."),
+        progressbar.OptionSpinnerType(14),
+        progressbar.OptionFullWidth(),
+        progressbar.OptionShowBytes(true), // バイト単位で速度を表示
+    )
+
 	// 指定された commitID を使って復元
-	err = snap.Restore(commitID)
+	err = snap.Restore(commitID, bar)
+	println()
 	if err != nil {
 		log.Fatalf("Failed to restore commit: %v", err)
 	}
