@@ -24,13 +24,16 @@ func List() {
 		fmt.Printf("Error occurred in listing tracks: %v\n", err)
 		return
 	}
-	for _, track_id := range list {
+	fmt.Println("Tracked Files:")
+    fmt.Println("==============================")
+	for i, track_id := range list {
 		filepath, err := idx.GetFilepath(track_id) //trackIDからファイルパスを取得
 		if err != nil {
 			fmt.Printf("Error in getting filepath by track ID: %v\n", err)
 			return
 		}
-		fmt.Printf("Filepath:%s\n", filepath)
+        fmt.Printf("%d. %s\n", i+1, filepath)
 	}
+    fmt.Println("==============================")
 	return
 }
