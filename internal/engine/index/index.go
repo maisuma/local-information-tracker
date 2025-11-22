@@ -25,18 +25,19 @@ type Indexer interface {
 	GetCommitsList(trackID int) ([]int, error)
 	GetCommit(commitID int) (Commit, error)
 }
-//indexerインターフェースの実装構造体
+
+// indexerインターフェースの実装構造体
 type DBIndexer struct {
 	db *sql.DB
 }
 
 type Commit struct {
-	TrackID int
-	CommitID int
+	TrackID    int
+	CommitID   int
 	Created_at time.Time
 }
 
-//データベース接続を初期化
+// データベース接続を初期化
 func NewDBIndexer(dbPath string) (*DBIndexer, error) {
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
@@ -56,12 +57,12 @@ func NewDBIndexer(dbPath string) (*DBIndexer, error) {
 	return indexer, nil
 }
 
-//データベースの接続を閉じる
+// データベースの接続を閉じる
 func (i *DBIndexer) Close() error {
 	return i.db.Close()
 }
 
-//テーブルを作成
+// テーブルを作成
 func (i *DBIndexer) initSchema() error {
 	queries := []string{
 		`CREATE TABLE IF NOT EXISTS tracked_files (
@@ -97,7 +98,8 @@ func (i *DBIndexer) initSchema() error {
 	}
 	return nil
 }
-//新しいファイルをトラック対象に追加する
+
+// 新しいファイルをトラック対象に追加する
 func (i *DBIndexer) AddTrack(filepath string) (int, error) {
 	query := `INSERT INTO tracked_files (filepath) VALUES (?)`
 	res, err := i.db.Exec(query, filepath)
@@ -115,7 +117,7 @@ func (i *DBIndexer) AddTrack(filepath string) (int, error) {
 	return int(id), nil
 }
 
-//トラック対象から削除する
+// トラック対象から削除する
 func (i *DBIndexer) RemoveTrack(trackID int) error {
 	res, err := i.db.Exec(`DELETE FROM tracked_files WHERE track_id = ?`, trackID)
 	if err != nil {
@@ -128,7 +130,7 @@ func (i *DBIndexer) RemoveTrack(trackID int) error {
 	return nil
 }
 
-//ファイルパスからtrackIDを取得する。
+// ファイルパスからtrackIDを取得する。
 func (i *DBIndexer) GetTrackIDByFile(filepath string) (int, error) {
 	var id int
 	err := i.db.QueryRow(`SELECT track_id FROM tracked_files WHERE filepath = ?`, filepath).Scan(&id)
@@ -138,7 +140,7 @@ func (i *DBIndexer) GetTrackIDByFile(filepath string) (int, error) {
 	return id, err
 }
 
-//commitIDからtrackIDを取得する。
+// commitIDからtrackIDを取得する。
 func (i *DBIndexer) GetTrackIDByCommit(commitID int) (int, error) {
 	var trackID int
 	err := i.db.QueryRow(`SELECT track_id FROM commits WHERE commit_id = ?`, commitID).Scan(&trackID)
@@ -148,7 +150,7 @@ func (i *DBIndexer) GetTrackIDByCommit(commitID int) (int, error) {
 	return trackID, err
 }
 
-//trackIDからファイルパスを取得する。
+// trackIDからファイルパスを取得する。
 func (i *DBIndexer) GetFilepath(trackID int) (string, error) {
 	var path string
 	err := i.db.QueryRow(`SELECT filepath FROM tracked_files WHERE track_id = ?`, trackID).Scan(&path)
@@ -158,7 +160,7 @@ func (i *DBIndexer) GetFilepath(trackID int) (string, error) {
 	return path, err
 }
 
-//ハッシュとpackfileの情報の対応関係を保存する。
+// ハッシュとpackfileの情報の対応関係を保存する。
 func (i *DBIndexer) SaveHash(hash []byte, packID int, offset int64, size int64) error {
 	hashStr := hex.EncodeToString(hash)
 	//既に存在する場合は情報を更新する
@@ -170,12 +172,12 @@ func (i *DBIndexer) SaveHash(hash []byte, packID int, offset int64, size int64) 
 	return nil
 }
 
-//ハッシュからpackfileの情報を取得する。
+// ハッシュからpackfileの情報を取得する。
 func (i *DBIndexer) GetPack(hash []byte) (int, int64, int64, error) {
 	hashStr := hex.EncodeToString(hash)
 	var packID int
 	var offset, size int64
-	
+
 	query := `SELECT pack_id, offset, size FROM hash_storage WHERE hash = ?`
 	err := i.db.QueryRow(query, hashStr).Scan(&packID, &offset, &size)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -187,7 +189,7 @@ func (i *DBIndexer) GetPack(hash []byte) (int, int64, int64, error) {
 	return packID, offset, size, nil
 }
 
-//ハッシュが追加済みか確認する。
+// ハッシュが追加済みか確認する。
 func (i *DBIndexer) LookupHash(hash []byte) (bool, error) {
 	hashStr := hex.EncodeToString(hash)
 	var exists bool
@@ -199,7 +201,7 @@ func (i *DBIndexer) LookupHash(hash []byte) (bool, error) {
 	return exists, nil
 }
 
-//コミット（スナップショット）を行う。そのコミットのハッシュをDBに保存する。
+// コミット（スナップショット）を行う。そのコミットのハッシュをDBに保存する。
 func (i *DBIndexer) AddCommit(trackID int, hashes [][]byte) (int, error) {
 	tx, err := i.db.Begin()
 	if err != nil {
@@ -207,10 +209,10 @@ func (i *DBIndexer) AddCommit(trackID int, hashes [][]byte) (int, error) {
 	}
 	//関数終了時にCommitされていなければロールバック
 	defer tx.Rollback()
-	
+
 	query := `INSERT INTO commits (track_id, created_at) VALUES (?, ?)`
 
-	res, err := tx.Exec(query, trackID, time.Now()) 
+	res, err := tx.Exec(query, trackID, time.Now())
 	if err != nil {
 		return 0, fmt.Errorf("failed to insert commit record: %w", err)
 	}
@@ -228,7 +230,7 @@ func (i *DBIndexer) AddCommit(trackID int, hashes [][]byte) (int, error) {
 
 	for order, h := range hashes {
 		hashStr := hex.EncodeToString(h)
-		
+
 		//外部キー制約により、hash_storageにこのハッシュが存在しないとエラーになる。
 		_, err = stmt.Exec(commitID, order, hashStr)
 		if err != nil {
@@ -243,7 +245,7 @@ func (i *DBIndexer) AddCommit(trackID int, hashes [][]byte) (int, error) {
 	return int(commitID), nil
 }
 
-//コミットのハッシュを取得する。
+// コミットのハッシュを取得する。
 func (i *DBIndexer) GetHashes(commitID int) ([][]byte, error) {
 	query := `SELECT hash FROM commit_contents WHERE commit_id = ? ORDER BY hash_order ASC`
 	rows, err := i.db.Query(query, commitID)
@@ -258,7 +260,7 @@ func (i *DBIndexer) GetHashes(commitID int) ([][]byte, error) {
 		if err := rows.Scan(&hashStr); err != nil {
 			return nil, err
 		}
-		
+
 		decoded, err := hex.DecodeString(hashStr)
 		if err != nil {
 			return nil, fmt.Errorf("database contains invalid hex hash: %w", err)
@@ -273,7 +275,7 @@ func (i *DBIndexer) GetHashes(commitID int) ([][]byte, error) {
 	return hashes, nil
 }
 
-//全てのtrackIDのリストを返す
+// 全てのtrackIDのリストを返す
 func (i *DBIndexer) GetTracksList() ([]int, error) {
 	query := `SELECT track_id FROM tracked_files`
 	rows, err := i.db.Query(query)
@@ -296,7 +298,7 @@ func (i *DBIndexer) GetTracksList() ([]int, error) {
 	return trackIDs, nil
 }
 
-//trackIDのコミット履歴を返す
+// trackIDのコミット履歴を返す
 func (i *DBIndexer) GetCommitsList(trackID int) ([]int, error) {
 	query := `SELECT commit_id FROM "commits" WHERE track_id = ? ORDER BY commit_id DESC`
 	rows, err := i.db.Query(query, trackID)
@@ -331,11 +333,11 @@ func (i *DBIndexer) GetCommit(commitID int) (Commit, error) {
 		return Commit{}, fmt.Errorf("failed to query commit: %w", err)
 	}
 	if t, perr := time.Parse(time.RFC3339, created_atStr); perr == nil {
-		c.Created_at =t
-	}else if t, perr := time.Parse("2006-01-02_15:04:05", created_atStr); perr == nil {
 		c.Created_at = t
-	}else {
-		c.Created_at = time.Time{}
+	} else if t, perr := time.Parse("2006-01-02_15:04:05", created_atStr); perr == nil {
+		c.Created_at = t
+	} else {
+		return Commit{}, fmt.Errorf("failed to parse timestamp '%s': not RFC3339 or custom format", created_atStr)
 	}
 	return c, nil
 }
