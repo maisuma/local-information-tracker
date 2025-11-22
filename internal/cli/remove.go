@@ -29,6 +29,10 @@ func Remove(targetFilepath string) {
 		fmt.Printf("Error occurred in removing track: %v\n", err)
 		return
 	}
-	fmt.Println("Removing track is complete")
+	fmt.Println("File successfully removed from tracking!")
+	fmt.Println("==============================")
+	fmt.Println("The file at the following filepath has been removed from tracking")
+	fmt.Printf("Filepath: %s\n", targetFilepath)
+	fmt.Println("==============================")
 	return
 }

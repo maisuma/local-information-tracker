@@ -24,12 +24,15 @@ func Add(targetFilepath string) {
 		return
 	}
 	defer idx.Close()
-	track_id, err := idx.AddTrack(targetFilepath) //トラックIDの発行と取得
+	_, err = idx.AddTrack(targetFilepath) //トラックIDの発行と取得
 	if err != nil {
 		fmt.Printf("Error occurred in adding track: %v\n", err)
 		return
 	}
-	fmt.Println("Adding file is complete")
-	fmt.Printf("Track ID:%d\n", track_id)
+	fmt.Println("File successfully added to tracking!")
+	fmt.Println("==============================")
+	fmt.Println("The file at the following filepath has been added to tracking")
+	fmt.Printf("Filepath: %s\n", targetFilepath)
+	fmt.Println("==============================")
 	return
 }
